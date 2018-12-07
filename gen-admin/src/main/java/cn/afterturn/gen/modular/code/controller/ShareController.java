@@ -38,12 +38,7 @@ public class ShareController extends BaseController {
 
     @RequestMapping(value = "/share/detail/{groupId}", method = RequestMethod.GET)
     public String sharedetail(@PathVariable String groupId, Model model) {
-        if (CacheKit.get(Cache.USER, CacheKey.TEMPLATE_DATA + groupId) == null) {
-            List<TemplateModel> list = templateService.getAllTemplateByGroupId(groupId);
-            CacheKit.put(Cache.USER, CacheKey.TEMPLATE_DATA + groupId, list);
-        }
-
-        model.addAttribute("list", CacheKit.get(Cache.USER, CacheKey.TEMPLATE_DATA + groupId));
+        model.addAttribute("list", templateService.getAllTemplateByGroupId(groupId));
         model.addAttribute("groupId", groupId);
         return PREFIX + "/single.html";
     }

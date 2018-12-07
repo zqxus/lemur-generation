@@ -52,7 +52,7 @@
     </select>
     <select id="getAllTemplateByGroupId"
             resultType="cn.afterturn.gen.modular.code.model.TemplateModel">
-        select * from t_code_template t where t.group_id = #{groupId}
+        select * from t_code_template t where t.group_id = #{groupId} and t.ORIGINAL_ID is null
     </select>
 
     <sql id="select_content">

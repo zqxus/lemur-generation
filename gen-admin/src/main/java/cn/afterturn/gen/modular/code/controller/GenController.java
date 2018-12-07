@@ -1,11 +1,11 @@
 /**
  * Copyright 2013-2017 JueYue (qrb.jueyue@gmail.com)
- *
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License. You may obtain a copy of the License at
- *
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software distributed under the License
  * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
  * or implied. See the License for the specific language governing permissions and limitations under
@@ -13,7 +13,20 @@
  */
 package cn.afterturn.gen.modular.code.controller;
 
+import cn.afterturn.gen.config.properties.GunsProperties;
+import cn.afterturn.gen.core.CodeGenModel;
+import cn.afterturn.gen.core.CodeGenUtil;
+import cn.afterturn.gen.core.GenCoreConstant;
+import cn.afterturn.gen.core.db.read.IReadTable;
+import cn.afterturn.gen.core.db.read.ReadTableFactory;
+import cn.afterturn.gen.core.model.*;
+import cn.afterturn.gen.core.parse.ParseFactory;
+import cn.afterturn.gen.core.shiro.ShiroKit;
+import cn.afterturn.gen.core.util.ConnectionUtil;
 import cn.afterturn.gen.core.util.DateUtil;
+import cn.afterturn.gen.core.util.NameUtil;
+import cn.afterturn.gen.modular.code.model.*;
+import cn.afterturn.gen.modular.code.service.*;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -25,47 +38,14 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import cn.afterturn.gen.common.exception.BussinessException;
-import cn.afterturn.gen.config.properties.GunsProperties;
-import cn.afterturn.gen.core.CodeGenModel;
-import cn.afterturn.gen.core.CodeGenUtil;
-import cn.afterturn.gen.core.GenCoreConstant;
-import cn.afterturn.gen.core.db.read.IReadTable;
-import cn.afterturn.gen.core.db.read.ReadTableFactory;
-import cn.afterturn.gen.core.model.BaseModel;
-import cn.afterturn.gen.core.model.GenBeanEntity;
-import cn.afterturn.gen.core.model.GenerationEntity;
-import cn.afterturn.gen.core.model.RequestModel;
-import cn.afterturn.gen.core.model.ResponseModel;
-import cn.afterturn.gen.core.parse.ParseFactory;
-import cn.afterturn.gen.core.shiro.ShiroKit;
-import cn.afterturn.gen.core.util.ConnectionUtil;
-import cn.afterturn.gen.core.util.FileUtil;
-import cn.afterturn.gen.core.util.NameUtil;
-import cn.afterturn.gen.modular.code.model.DbInfoModel;
-import cn.afterturn.gen.modular.code.model.GenParamModel;
-import cn.afterturn.gen.modular.code.model.TableInfoModel;
-import cn.afterturn.gen.modular.code.model.TemplateGroupModel;
-import cn.afterturn.gen.modular.code.model.TemplateModel;
-import cn.afterturn.gen.modular.code.service.IDbInfoService;
-import cn.afterturn.gen.modular.code.service.IGenParamService;
-import cn.afterturn.gen.modular.code.service.IGenService;
-import cn.afterturn.gen.modular.code.service.ITableInfoService;
-import cn.afterturn.gen.modular.code.service.ITemplateGroupService;
-import cn.afterturn.gen.modular.code.service.ITemplateService;
-
-import cn.afterturn.gen.common.exception.BizExceptionEnum;
 
 /**
  * @author JueYue 2017年4月22日
@@ -79,19 +59,19 @@ public class GenController {
     private String PREFIX = "/code/gen/";
 
     @Autowired
-    private IGenService genService;
+    private IGenService           genService;
     @Autowired
-    private ITemplateService templateService;
+    private ITemplateService      templateService;
     @Autowired
-    private IDbInfoService dbInfoService;
+    private IDbInfoService        dbInfoService;
     @Autowired
     private ITemplateGroupService templateGroupService;
     @Autowired
-    private IGenParamService genParamService;
+    private IGenParamService      genParamService;
     @Autowired
-    private GunsProperties gunsProperties;
+    private GunsProperties        gunsProperties;
     @Autowired
-    private ITableInfoService tableInfoService;
+    private ITableInfoService     tableInfoService;
 
     /**
      * 跳转到首页
@@ -102,7 +82,7 @@ public class GenController {
         model.setUserId(ShiroKit.getUser().getId());
         modelMap.addAttribute("groups", templateGroupService.selectList(model));
         GenParamModel params = new GenParamModel();
-        model.setUserId(ShiroKit.getUser().getId());
+        params.setUserId(ShiroKit.getUser().getId());
         modelMap.addAttribute("params", genParamService.selectList(params));
         return PREFIX + "index.html";
     }
@@ -129,10 +109,10 @@ public class GenController {
             entity = dbInfoService.selectOne(entity);
             ConnectionUtil.init(entity.getDbDriver(), entity.getDbUrl(), entity.getDbUserName(),
                     entity.getDbPassword());
-            IReadTable readTable = ReadTableFactory.getReadTable(entity.getDbType());
-            List<String> list = readTable.getAllDB();
-            List<BaseModel> dblist = new ArrayList<BaseModel>();
-            BaseModel info;
+            IReadTable      readTable = ReadTableFactory.getReadTable(entity.getDbType());
+            List<String>    list      = readTable.getAllDB();
+            List<BaseModel> dblist    = new ArrayList<BaseModel>();
+            BaseModel       info;
             for (String db : list) {
                 info = new BaseModel(db);
                 dblist.add(info);
@@ -161,8 +141,8 @@ public class GenController {
     public void genCode(DbInfoModel entity, String dbName, String tableName, String localPath, String encoded, GenerationEntity ge,
                         HttpServletRequest req, HttpServletResponse res) {
         entity = dbInfoService.selectOne(entity);
-        String[] templates = req.getParameterValues("templates[]");
-        CodeGenModel model = new CodeGenModel();
+        String[]     templates = req.getParameterValues("templates[]");
+        CodeGenModel model     = new CodeGenModel();
         model.setDbType(GenCoreConstant.MYSQL);
         model.setTableName(tableName);
         model.setDbName(dbName);
@@ -173,9 +153,9 @@ public class GenController {
             ge.setEntityName(NameUtil.getEntityHumpName(tableName));
         }
         model.setGenerationEntity(ge);
-        List<TemplateModel> templateList = templateService.getTemplateByIds(templates);
-        List<String> templateFileList = genService.loadTemplateFile(templateList);
-        List<String> fileList = new ArrayList<String>();
+        List<TemplateModel> templateList     = templateService.getTemplateByIds(templates);
+        List<String>        templateFileList = genService.loadTemplateFile(templateList);
+        List<String>        fileList         = new ArrayList<String>();
         for (int i = 0; i < templateList.size(); i++) {
             model.setParseType(templateList.get(i).getTemplateType());
             model.setFile(templateFileList.get(i));
@@ -191,12 +171,12 @@ public class GenController {
 
     @RequestMapping(value = "genTableCode")
     public void genTableCode(Integer tableId, String localPath, String encoded, GenerationEntity ge,
-                        HttpServletRequest req, HttpServletResponse res) {
-        String[] templates = req.getParameterValues("templates[]");
-        List<TemplateModel> templateList = templateService.getTemplateByIds(templates);
-        final List<String> templateFileList = genService.loadTemplateFile(templateList);
-        List<String> fileList = new ArrayList<String>();
-        GenBeanEntity tableEntity = tableInfoService.getGenBean(tableId);
+                             HttpServletRequest req, HttpServletResponse res) {
+        String[]            templates        = req.getParameterValues("templates[]");
+        List<TemplateModel> templateList     = templateService.getTemplateByIds(templates);
+        final List<String>  templateFileList = genService.loadTemplateFile(templateList);
+        List<String>        fileList         = new ArrayList<String>();
+        GenBeanEntity       tableEntity      = tableInfoService.getGenBean(tableId);
         ge.setTableName(tableEntity.getTableName());
         ge.setDate(DateUtil.getTime());
         for (int i = 0; i < templateList.size(); i++) {
@@ -246,7 +226,7 @@ public class GenController {
         ZipOutputStream out = null;
         try {
             res.setContentType("application/octet-stream");
-            res.setHeader("Content-Disposition", "attachment;filename=" + ge.getEntityName() + ".zip");
+            res.setHeader("Content-Disposition", "attachment;filename=GEN_" + ge.getEntityName() + ".zip");
             out = new ZipOutputStream(res.getOutputStream());
             for (int i = 0; i < fileList.size(); i++) {
                 out.putNextEntry(new ZipEntry(getPackagePath(templateList.get(i), ge) + File.separator + getFileName(templateList.get(i), ge)));
@@ -271,6 +251,8 @@ public class GenController {
             return String.format(templateModel.getFileName(), ge.getEntityName().toLowerCase());
         } else if (templateModel.getFileName().endsWith("html")) {
             return String.format(templateModel.getFileName(), ge.getEntityName().toLowerCase());
+        } else if (templateModel.getFileName().endsWith("vue")) {
+            return String.format(templateModel.getFileName(), ge.getEntityName().toLowerCase());
         } else if (templateModel.getFileName().endsWith("xml")) {
             return String.format(templateModel.getFileName(), ge.getEntityName());
         } else {
@@ -285,6 +267,10 @@ public class GenController {
                     + (StringUtils.isNotEmpty(templateModel.getTemplatePath()) ? "/"
                     + templateModel.getTemplatePath().replaceAll("\\.", "\\/") : "");
         } else if (templateModel.getFileName().endsWith("html")) {
+            return ge.getHtmlPackage().replaceAll("\\.", "\\/")
+                    + (StringUtils.isNotEmpty(templateModel.getTemplatePath()) ? "/"
+                    + templateModel.getTemplatePath().replaceAll("\\.", "\\/") : "");
+        } else if (templateModel.getFileName().endsWith("vue")) {
             return ge.getHtmlPackage().replaceAll("\\.", "\\/")
                     + (StringUtils.isNotEmpty(templateModel.getTemplatePath()) ? "/"
                     + templateModel.getTemplatePath().replaceAll("\\.", "\\/") : "");
