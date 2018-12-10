@@ -25,15 +25,15 @@ public enum QueryType {
     RIGHT_LIKE(9, "like concat(key, '%')");
 
 
-    private int code;
+    private Integer code;
     private String key;
 
-    QueryType(int code, String key) {
+    QueryType(Integer code, String key) {
         this.code = code;
         this.key = key;
     }
 
-    public int getCode() {
+    public Integer getCode() {
         return code;
     }
 

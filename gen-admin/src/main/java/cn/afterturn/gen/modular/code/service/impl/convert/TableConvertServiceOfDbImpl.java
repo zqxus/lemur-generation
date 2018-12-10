@@ -1,6 +1,7 @@
 package cn.afterturn.gen.modular.code.service.impl.convert;
 
 import cn.afterturn.gen.core.model.enmus.BooleanType;
+import cn.afterturn.gen.core.model.enmus.QueryType;
 import com.alibaba.fastjson.JSON;
 
 import org.apache.commons.lang3.StringUtils;
@@ -63,6 +64,10 @@ public class TableConvertServiceOfDbImpl implements ITableConvertServer {
             fieldModel.setType(tableField.getType());
             fieldModel.setIsKey(tableField.getKey());
             fieldModel.setIsQuery(BooleanType.YES.getIntD());
+            fieldModel.setQueryMode(QueryType.EQ.getCode());
+            fieldModel.setShowType(1);
+            fieldModel.setOrderNum(2);
+            fieldModel.setDictType(1);
             verifyModel = new TableFieldVerifyModel();
             verifyModel.setNotNull(tableField.getNotNull());
             fieldModel.setVerifyModel(verifyModel);
